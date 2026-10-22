@@ -158,6 +158,55 @@ $exts = get_loaded_extensions();
 sort($exts, SORT_FLAG_CASE | SORT_STRING);
 // one-line command for diag-fpm.sh with exactly the files this FPM worker loaded
 $diagCmd = 'sh diag-fpm.sh ' . escapeshellarg($iniLoaded) . ($iniScanned ? ' ' . escapeshellarg(implode(',', $iniScanned)) : '');
+
+// --- compatibility report (pre-fills the GitHub issue form) -------------------------
+const REPO_URL = 'https://github.com/Alex-Goaga/synology-dsm6-php74-php2shell';
+
+// open_basedir may hide these files; an empty string means "unknown"
+function read_file_quiet(string $file): string {
+    $s = @file_get_contents($file);
+    return $s === false ? '' : trim($s);
+}
+$ver = @parse_ini_string(read_file_quiet('/etc.defaults/VERSION')) ?: [];
+$pkg = @parse_ini_string(read_file_quiet('/var/packages/PHP7.4/INFO')) ?: [];
+$cpu = preg_match('/^model name\s*:\s*(.+)$/m', read_file_quiet('/proc/cpuinfo'), $mm) ? trim($mm[1]) : '';
+$syno = [
+    'model' => read_file_quiet('/proc/sys/kernel/syno_hw_version'),
+    'dsm' => isset($ver['productversion'])
+        ? $ver['productversion'] . '-' . ($ver['buildnumber'] ?? '?') . (!empty($ver['smallfixnumber']) ? ' Update ' . $ver['smallfixnumber'] : '')
+        : '',
+    'cpu' => $cpu,
+    'package' => $pkg['version'] ?? '',
+];
+$mark = fn($ok) => $ok === null ? 'i' : ($ok ? 'OK' : 'FAIL');
+$lines = [
+    'Model: ' . ($syno['model'] ?: 'unknown'),
+    'DSM: ' . ($syno['dsm'] ?: 'unknown'),
+    'CPU: ' . ($syno['cpu'] ?: 'unknown'),
+    'PHP7.4 package: ' . ($syno['package'] ?: 'unknown') . ' (binaries replaced by this project)',
+    'PHP: ' . PHP_VERSION . ' (' . PHP_SAPI . '), web server: ' . strtok((string)($_SERVER['SERVER_SOFTWARE'] ?? 'unknown'), ' '),
+    'Extensions loaded: ' . count($exts),
+    '',
+    'Checks:',
+];
+foreach ($results as [$n, $ok, $msg]) $lines[] = "[{$mark($ok)}] $n – $msg";
+if ($upload) $lines[] = "[{$mark($upload[0])}] File upload";
+if ($dbResults) {
+    $lines[] = '';
+    $lines[] = 'Database:';
+    foreach ($dbResults as [$ok, $msg]) $lines[] = "[{$mark($ok)}] $msg";
+}
+// mask every IPv4 address except loopback so reports never leak LAN/WAN addresses
+$report = preg_replace_callback('/\b(?:\d{1,3}\.){3}\d{1,3}\b/',
+    fn($m) => $m[0] === '127.0.0.1' ? $m[0] : 'x.x.x.x', implode("\n", $lines));
+$issueUrl = REPO_URL . '/issues/new?' . http_build_query([
+    'template' => 'compatibility-report.yml',
+    'title' => '[Report] ' . ($syno['model'] ?: 'model?') . ' – DSM ' . ($syno['dsm'] ?: '?'),
+    'model' => $syno['model'],
+    'dsm' => $syno['dsm'],
+    'cpu' => $syno['cpu'],
+    'report' => $report,
+], '', '&', PHP_QUERY_RFC3986);
 ?>
 <!doctype html>
 <html lang="en">
@@ -182,7 +231,7 @@ $diagCmd = 'sh diag-fpm.sh ' . escapeshellarg($iniLoaded) . ($iniScanned ? ' ' .
   label { display:flex; flex-direction:column; font-size:13px; color:var(--muted); gap:4px; }
   input { font:inherit; padding:7px 9px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); }
   .actions { grid-column:1/-1; display:flex; gap:10px; flex-wrap:wrap; }
-  button { font:inherit; padding:8px 14px; border-radius:6px; border:1px solid var(--line); background:var(--text); color:var(--card); cursor:pointer; }
+  button, a.button { font:inherit; padding:8px 14px; border-radius:6px; border:1px solid var(--line); background:var(--text); color:var(--card); cursor:pointer; text-decoration:none; display:inline-block; }
   button.secondary { background:transparent; color:var(--text); }
   code { font-size:13px; }
 </style>
@@ -245,6 +294,27 @@ $diagCmd = 'sh diag-fpm.sh ' . escapeshellarg($iniLoaded) . ($iniScanned ? ' ' .
     <?php endif; ?>
     <p class="sub" style="margin-top:12px">MariaDB 10 on DSM 6: socket <code>/run/mysqld/mysqld10.sock</code> or TCP port <code>3307</code>. MariaDB 5: socket <code>/run/mysqld/mysqld.sock</code>, port <code>3306</code>. The password is not stored anywhere.</p>
   </section>
+
+  <section class="card">
+    <h2>Share your result</h2>
+    <p class="sub">Help others know which Synology models work: run the database test above first, then send this report. IP addresses are masked automatically; please check the text before submitting.</p>
+    <?php if (!$syno['model'] || !$syno['dsm']): ?>
+      <p class="sub">The model or DSM version could not be read (Web Station's <code>open_basedir</code> may block it) – please fill them in on GitHub. You can find them in DSM → Control Panel → Info Center.</p>
+    <?php endif; ?>
+    <textarea id="report" readonly rows="14" style="width:100%;font:13px/1.45 ui-monospace,Consolas,monospace;padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text)"><?= h($report) ?></textarea>
+    <div class="actions" style="margin-top:10px">
+      <a class="button" href="<?= h($issueUrl) ?>" target="_blank" rel="noopener noreferrer">Report on GitHub</a>
+      <button type="button" class="secondary" id="copy">Copy report</button>
+    </div>
+  </section>
+  <script>
+    document.getElementById('copy').addEventListener('click', function () {
+      var t = document.getElementById('report');
+      t.select();
+      (navigator.clipboard ? navigator.clipboard.writeText(t.value) : Promise.reject()).catch(function () { document.execCommand('copy'); });
+      this.textContent = 'Copied';
+    });
+  </script>
 </main>
 </body>
 </html>

@@ -15,6 +15,15 @@ run PHP 7.4 sites.
 | **Tested in production** | **Synology DS1815+** (Intel Atom C2538 "Avoton"), DSM 6.2, PHP7.4 package 7.4.30-0009, Web Station with a custom PHP 7.4 profile (PHP-FPM), MariaDB 5.5.68 |
 | Expected to work | any x86_64 Synology on DSM 6.2 with PHP7.4 7.4.30-0009 (e.g. DS412+), not tested yet |
 | Result on the DS1815+ | install OK, PHP-FPM reloaded with no downtime, test page all green (`PHP 7.4.33 (fpm-fcgi)`), 61 CLI modules / 43 site extensions loaded exactly as with the original, connection to MariaDB 5.5.68 OK |
+## Tested models
+
+| Model | CPU | DSM | Result | Reported by |
+|---|---|---|---|---|
+| DS1815+ | Intel Atom C2538 | 6.2 | ✔ works (production: Web Station + PHP-FPM, MariaDB 5.5) | maintainer |
+
+**Tested it on another model? Please [report your result](#report-your-result)**, whether it
+worked or not; it helps others decide.
+
 ## Why
 
 - PHP2Shell allows **unauthenticated remote code execution** via `multipart/form-data`
@@ -118,13 +127,33 @@ PHP really runs on your NAS and that your sites' extensions and database still w
    - the PHP version and SAPI, and the PHP2Shell setting;
    - the common extensions (ones your profile disables show as ⓘ, not as errors);
    - DNS functions, `fnmatch()`, OpenSSL, outbound HTTPS, mbstring, intl, sessions, GD;
-   - which `php.ini` / `.ini` files the site really uses (plus a ready `diag-fpm.sh` command).
+   - which `php.ini` / `.ini` files the site really uses (plus a ready `diag-fpm.sh` command);
+   - a ready-made compatibility report you can send with one click
+     (see [Report your result](#report-your-result)).
 4. Fill in the MariaDB form to test connect / create / insert / select with accents and
    emoji (mysqli, plus PDO if `pdo_mysql` is enabled) and an optional file upload, which
    goes through the code path patched for PHP2Shell.
    - MariaDB 10 on DSM 6: socket `/run/mysqld/mysqld10.sock` or TCP `127.0.0.1:3307`.
    - MariaDB 5: socket `/run/mysqld/mysqld.sock` or TCP `127.0.0.1:3306`.
 5. **Delete it after testing.** The password is never stored.
+
+## Report your result
+
+Every report, good or bad, adds a line to the [Tested models](#tested-models) table.
+
+1. Install, then open the [test page](#test-page) on your NAS. Fill in the database form if
+   your sites use MariaDB.
+2. At the bottom, in **"Share your result"**, click **Report on GitHub**. It opens a
+   [compatibility report](https://github.com/Alex-Goaga/synology-dsm6-php74-php2shell/issues/new?template=compatibility-report.yml)
+   already filled in with your model, DSM version, CPU and the test results. IP addresses
+   are masked automatically.
+3. Choose the result (works / works with problems / does not work), optionally paste the
+   `install.sh` output, check the text and submit.
+
+No test page? Open the
+[report form](https://github.com/Alex-Goaga/synology-dsm6-php74-php2shell/issues/new?template=compatibility-report.yml)
+directly and fill it in by hand. The model and DSM version are in DSM → Control Panel →
+Info Center.
 
 ## Behaviour changes (intended, from the PHP2Shell mitigation)
 

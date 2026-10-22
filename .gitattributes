@@ -4,6 +4,7 @@
 *.patch  text eol=lf
 *.md     text eol=lf
 *.txt    text eol=lf
+*.yml    text eol=lf
 SHA256SUMS text eol=lf
 deploy/php74     binary
 deploy/php74-cgi binary
