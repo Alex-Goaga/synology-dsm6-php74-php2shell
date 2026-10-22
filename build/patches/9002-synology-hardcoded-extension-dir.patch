@@ -1,0 +1,47 @@
+--- a/ext/standard/dl.c
++++ b/ext/standard/dl.c
+@@ -70,6 +70,10 @@
+ 
+ #if defined(HAVE_LIBDL)
+ 
++#ifndef SYNO_EXTENSION_DIR
++# define SYNO_EXTENSION_DIR "/usr/local/lib/php74/modules/"
++#endif
++
+ /* {{{ php_load_shlib
+  */
+ PHPAPI void *php_load_shlib(char *path, char **errp)
+@@ -111,9 +115,9 @@
+ 	char *err1, *err2;
+ 
+ 	if (type == MODULE_PERSISTENT) {
+-		extension_dir = INI_STR("extension_dir");
++		extension_dir = (char *) SYNO_EXTENSION_DIR;
+ 	} else {
+-		extension_dir = PG(extension_dir);
++		extension_dir = (char *) SYNO_EXTENSION_DIR;
+ 	}
+ 
+ 	if (type == MODULE_TEMPORARY) {
+--- a/main/php_ini.c
++++ b/main/php_ini.c
+@@ -316,6 +316,10 @@
+ }
+ /* }}} */
+ 
++#ifndef SYNO_EXTENSION_DIR
++# define SYNO_EXTENSION_DIR "/usr/local/lib/php74/modules/"
++#endif
++
+ #ifndef SYNO_PKG_MODULES_DIR
+ # define SYNO_PKG_MODULES_DIR "/var/packages/PHP7.4/target/usr/local/lib/php74/modules"
+ #endif
+@@ -403,7 +407,7 @@
+ 	} else {
+ 		DL_HANDLE handle;
+ 		char *libpath;
+-		char *extension_dir = INI_STR("extension_dir");
++		char *extension_dir = (char *) SYNO_EXTENSION_DIR;
+ 		int slash_suffix = 0;
+ 		char *err1, *err2;
+ 

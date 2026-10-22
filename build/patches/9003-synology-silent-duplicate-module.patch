@@ -1,0 +1,11 @@
+--- a/Zend/zend_API.c
++++ b/Zend/zend_API.c
+@@ -2038,7 +2038,7 @@
+ 
+ 	lcname = zend_new_interned_string(lcname);
+ 	if ((module_ptr = zend_hash_add_mem(&module_registry, lcname, module, sizeof(zend_module_entry))) == NULL) {
+-		zend_error(E_CORE_WARNING, "Module '%s' already loaded", module->name);
++		/* Synology: duplicate extension= lines are ignored silently */
+ 		zend_string_release(lcname);
+ 		return NULL;
+ 	}

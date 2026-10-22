@@ -1,0 +1,76 @@
+--- a/main/php_ini.c
++++ b/main/php_ini.c
+@@ -316,12 +316,63 @@
+ }
+ /* }}} */
+ 
++#ifndef SYNO_PKG_MODULES_DIR
++# define SYNO_PKG_MODULES_DIR "/var/packages/PHP7.4/target/usr/local/lib/php74/modules"
++#endif
++
++#ifdef HAVE_LIBDL
++/* emalloc'ed path inside the package modules dir if the bare name exists there */
++static char *syno_pkg_module_path(const char *filename)
++{
++	char *path = NULL;
++
++	if (strchr(filename, '/')) {
++		return NULL;
++	}
++	spprintf(&path, 0, "%s/%s", SYNO_PKG_MODULES_DIR, filename);
++	if (access(path, F_OK) != 0) {
++		efree(path);
++		return NULL;
++	}
++	return path;
++}
++
++static int syno_load_pkg_zend_extension(const char *filename)
++{
++	char *pkg_path = syno_pkg_module_path(filename);
++	char *err = NULL;
++	DL_HANDLE handle;
++
++	if (!pkg_path) {
++		return 0;
++	}
++	handle = (DL_HANDLE)php_load_shlib(pkg_path, &err);
++	if (!handle) {
++		if (err) {
++			efree(err);
++		}
++		efree(pkg_path);
++		return 0;
++	}
++	zend_load_extension_handle(handle, pkg_path);
++	efree(pkg_path);
++	return 1;
++}
++#endif
++
+ /* {{{ php_load_php_extension_cb
+  */
+ static void php_load_php_extension_cb(void *arg)
+ {
+ #ifdef HAVE_LIBDL
+-	php_load_extension(*((char **) arg), MODULE_PERSISTENT, 0);
++	char *pkg_path = syno_pkg_module_path(*((char **) arg));
++
++	if (pkg_path) {
++		php_load_extension(pkg_path, MODULE_PERSISTENT, 0);
++		efree(pkg_path);
++	} else {
++		php_load_extension(*((char **) arg), MODULE_PERSISTENT, 0);
++	}
+ #endif
+ }
+ /* }}} */
+@@ -347,6 +398,8 @@
+ 	}
+ #endif
+ 		zend_load_extension(filename);
++	} else if (syno_load_pkg_zend_extension(filename)) {
++		/* loaded from the Synology package modules dir */
+ 	} else {
+ 		DL_HANDLE handle;
+ 		char *libpath;
