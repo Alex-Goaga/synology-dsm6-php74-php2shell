@@ -21,7 +21,7 @@ run PHP 7.4 sites.
 | Model | CPU | DSM | Result | Reported by |
 |---|---|---|---|---|
 | DS1815+ | Intel Atom C2538 | 6.2 | ✔ works (production: Web Station + PHP-FPM, MariaDB 5.5) | maintainer |
-| DS412+ | Intel Atom D2700 | 6.2.4-25556 Update 8 | ✔ installed, PHP-FPM running 7.4.33 next to PHP 5.6 (test page pending) | maintainer |
+| DS412+ | Intel Atom D2700 | 6.2.4-25556 Update 8 | ✔ works (test page all green, 58 extensions incl. openssl, soap, intl, gd; PHP 5.6 running alongside) | maintainer |
 
 **Tested it on another model? Please [report your result](#report-your-result)**, whether it
 worked or not; it helps others decide.
