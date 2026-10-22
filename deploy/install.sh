@@ -18,8 +18,11 @@ die() { echo "ERROR: $*" >&2; exit 1; }
 # binary name, so pick masters by the executable they run
 fpm74_masters() {
   for p in $(ps -eo pid,args 2>/dev/null | awk '/php-fpm: master process/ && !/awk/ {print $1}'); do
-    readlink "/proc/$p/exe" 2>/dev/null | grep -q 'php74-fpm' && echo "$p"
+    case "$(readlink "/proc/$p/exe" 2>/dev/null)" in *php74-fpm*) echo "$p";; esac
   done
+  # always succeed: with set -e, a non-PHP-7.4 FPM master (e.g. another PHP
+  # package) listed last would otherwise abort the script before the reload
+  return 0
 }
 
 # copy to a temp name and rename: running processes keep the old inode, so

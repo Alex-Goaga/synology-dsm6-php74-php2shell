@@ -13,13 +13,15 @@ run PHP 7.4 sites.
 | | |
 |---|---|
 | **Tested in production** | **Synology DS1815+** (Intel Atom C2538 "Avoton"), DSM 6.2, PHP7.4 package 7.4.30-0009, Web Station with a custom PHP 7.4 profile (PHP-FPM), MariaDB 5.5.68 |
-| Expected to work | any x86_64 Synology on DSM 6.2 with PHP7.4 7.4.30-0009 (e.g. DS412+), not tested yet |
+| Also installed on | **DS412+** (Intel Atom D2700 – no SSE4.2/AVX2), DSM 6.2.4-25556 Update 8, alongside a PHP 5.6 package |
+| Expected to work | any x86_64 Synology on DSM 6.2 with PHP7.4 7.4.30-0009 |
 | Result on the DS1815+ | install OK, PHP-FPM reloaded with no downtime, test page all green (`PHP 7.4.33 (fpm-fcgi)`), 61 CLI modules / 43 site extensions loaded exactly as with the original, connection to MariaDB 5.5.68 OK |
 ## Tested models
 
 | Model | CPU | DSM | Result | Reported by |
 |---|---|---|---|---|
 | DS1815+ | Intel Atom C2538 | 6.2 | ✔ works (production: Web Station + PHP-FPM, MariaDB 5.5) | maintainer |
+| DS412+ | Intel Atom D2700 | 6.2.4-25556 Update 8 | ✔ installed, PHP-FPM running 7.4.33 next to PHP 5.6 (test page pending) | maintainer |
 
 **Tested it on another model? Please [report your result](#report-your-result)**, whether it
 worked or not; it helps others decide.
@@ -232,6 +234,15 @@ d8cc2d08e684373a99ebd60b34607b180420a61acfc645f3a571cf5ac7c151e0  php74-fpm
 ```
 
 The extension checksums are listed in `deploy/SHA256SUMS`.
+
+## Changelog
+
+- **v1.0.1** – `install.sh` / `uninstall.sh`: fixed an early exit before the PHP-FPM reload
+  when another PHP package (e.g. PHP 5.6) also runs PHP-FPM. Files were installed, but the
+  running PHP 7.4 workers kept the old binary until a reload. If you installed v1.0.0 on such
+  a NAS, run `install.sh` from v1.0.1 again (safe, the original backup is kept). The PHP
+  binaries are unchanged.
+- **v1.0.0** – first release.
 
 ## Credits
 
