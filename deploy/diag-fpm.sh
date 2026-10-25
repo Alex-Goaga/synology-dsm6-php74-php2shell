@@ -4,7 +4,9 @@
 # Take the command from the test page ("Diagnostic command"), e.g.:
 #   sudo -i ; sh diag-fpm.sh '/path/php.ini' '/path/a.ini,/path/b.ini'
 
-ORIG=/var/packages/PHP7.4/target/.orig-7.4.30-0009/bin/php74
+HERE=$(cd "$(dirname "$0")" && pwd)
+. "$HERE/target.env"
+ORIG=/var/packages/PHP7.4/target/.orig-$PKG_VER/bin/php74
 NEW=/var/packages/PHP7.4/target/usr/local/bin/php74
 INI=$1
 SCANNED=$2

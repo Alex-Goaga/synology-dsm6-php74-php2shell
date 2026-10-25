@@ -4,8 +4,8 @@
 # (mysqlnd is in core and carries the wire-protocol security fixes).
 set -uo pipefail
 
-W=$HOME/synobuild
-SYSROOT=$W/root/usr/local/x86_64-pc-linux-gnu/x86_64-pc-linux-gnu/sys-root
+B=$(cd "$(dirname "$0")" && pwd)
+. "$B/lib/target.sh"
 M=$W/mariadb
 BASE=$M/mariadb-10.3.39-linux-systemd-x86_64
 DATA=$M/data
@@ -14,7 +14,7 @@ PORT=33306
 MOD=$W/syno/pkg/usr/local/lib/php74/modules
 export LD_LIBRARY_PATH=$W/deps/lib:$SYSROOT/usr/lib:$W/syno/pkg/usr/lib
 
-bash "$(cd "$(dirname "$0")" && pwd)/get-mariadb.sh" || exit 1
+bash "$B/get-mariadb.sh" || exit 1
 rm -rf "$DATA" && mkdir -p "$DATA"
 ( export LD_LIBRARY_PATH=$M/aio/root/usr/lib/x86_64-linux-gnu  # libaio for mysqld only
   "$BASE/scripts/mysql_install_db" --no-defaults --basedir="$BASE" --datadir="$DATA" >"$M/install.log" 2>&1

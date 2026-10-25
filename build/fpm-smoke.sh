@@ -1,6 +1,7 @@
 #!/bin/bash
-W=$HOME/synobuild
-export LD_LIBRARY_PATH=$W/deps/lib:$W/root/usr/local/x86_64-pc-linux-gnu/x86_64-pc-linux-gnu/sys-root/usr/lib
+B=$(cd "$(dirname "$0")" && pwd)
+. "$B/lib/target.sh"
+export LD_LIBRARY_PATH=$W/deps/lib:$SYSROOT/usr/lib
 D=/tmp/fpmtest; rm -rf $D; mkdir -p $D
 cat > $D/fpm.conf <<CONF
 [global]

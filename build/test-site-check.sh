@@ -1,14 +1,14 @@
 #!/bin/bash
 # Serve test-site/index.php with the rebuilt php74 (+ all extensions) and a
 # throwaway MariaDB 10.3, then exercise it like a browser would.
-W=$HOME/synobuild
-SYSROOT=$W/root/usr/local/x86_64-pc-linux-gnu/x86_64-pc-linux-gnu/sys-root
+B=$(cd "$(dirname "$0")" && pwd)
+. "$B/lib/target.sh"
 M=$W/mariadb; BASE=$M/mariadb-10.3.39-linux-systemd-x86_64; SOCK=$M/mysqld.sock
 ORIG_MOD=$W/syno/pkg/usr/local/lib/php74/modules; NEW_MOD=$W/out/modules
-SITE=$(cd "$(dirname "$0")/.." && pwd)/test-site
+SITE=$(cd "$B/.." && pwd)/test-site
 export LD_LIBRARY_PATH=$W/deps/lib:$W/extdeps/xslt/lib:$SYSROOT/usr/lib:$W/syno/pkg/usr/lib
 
-bash "$(cd "$(dirname "$0")" && pwd)/get-mariadb.sh" || exit 1
+bash "$B/get-mariadb.sh" || exit 1
 rm -rf $M/data && mkdir -p $M/data
 ( export LD_LIBRARY_PATH=$M/aio/root/usr/lib/x86_64-linux-gnu
   $BASE/scripts/mysql_install_db --no-defaults --basedir=$BASE --datadir=$M/data >/dev/null 2>&1

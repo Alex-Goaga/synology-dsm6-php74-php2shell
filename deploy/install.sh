@@ -1,14 +1,16 @@
 #!/bin/sh
-# Install patched PHP 7.4.33 (PHP2Shell fix + security backports) over Synology
-# PHP7.4 7.4.30-0009 on DSM 6.2 x86_64: core binaries + rebuilt extensions.
+# Install patched PHP 7.4.33 (PHP2Shell fix + security backports) over the
+# Synology PHP7.4 reference package named in target.env (colocated with this
+# script): core binaries + rebuilt extensions.
 # Run on the NAS as root:  sudo -i ; sh install.sh
 set -e
 
 HERE=$(cd "$(dirname "$0")" && pwd)
+. "$HERE/target.env"
 PKGDIR=/var/packages/PHP7.4
 BIN=$PKGDIR/target/usr/local/bin
 MODDIR=$PKGDIR/target/usr/local/lib/php74/modules
-BACKUP=$PKGDIR/target/.orig-7.4.30-0009
+BACKUP=$PKGDIR/target/.orig-$PKG_VER
 FILES="php74 php74-cgi php74-fpm"
 MODS=$(cd "$HERE/modules" && ls *.so)
 
@@ -35,9 +37,9 @@ replace() { # src dst
 }
 
 [ "$(id -u)" = 0 ] || die "run as root (sudo -i)"
-[ "$(uname -m)" = x86_64 ] || die "architecture is not x86_64"
-grep -q '^version="7.4.30-0009"' "$PKGDIR/INFO" 2>/dev/null || die "the installed PHP7.4 package is not 7.4.30-0009"
-grep -q '^arch="x86_64"' "$PKGDIR/INFO" || die "the PHP7.4 package is not x86_64"
+[ "$(uname -m)" = "$PKG_ARCH" ] || die "architecture is not $PKG_ARCH"
+grep -q "^version=\"$PKG_VER\"" "$PKGDIR/INFO" 2>/dev/null || die "the installed PHP7.4 package is not $PKG_VER"
+grep -q "^arch=\"$PKG_ARCH\"" "$PKGDIR/INFO" || die "the PHP7.4 package is not $PKG_ARCH"
 for m in $MODS; do [ -f "$MODDIR/$m" ] || die "extension $m does not exist in the installed package"; done
 
 cd "$HERE"
@@ -50,7 +52,7 @@ CLI_INI=/usr/local/etc/php74/cli
 [ -d "$CLI_INI/conf.d" ] && export PHP_INI_SCAN_DIR="$CLI_INI/conf.d"
 # reference = the original Synology binary (backup if a previous run installed already)
 REF=$BIN/php74; [ -x "$BACKUP/bin/php74" ] && REF=$BACKUP/bin/php74
-"$REF" -v 2>/dev/null | head -1 | grep -q 'PHP 7.4.30' || die "reference binary $REF is not the original 7.4.30"
+"$REF" -v 2>/dev/null | head -1 | grep -q "PHP $REF_PHP_VER" || die "reference binary $REF is not the original $REF_PHP_VER"
 TMP=/tmp/php74-fix.$$; mkdir -p $TMP; trap 'rm -rf $TMP' EXIT
 startup_warnings() { # php-binary -> sorted startup warnings with the real config
   "$1" -c "$CLI_INI" -m 2>&1 | grep -iE 'warning|unable to (load|initialize)|undefined symbol' | sort -u
@@ -75,8 +77,8 @@ check_against_ref() { # php-binary label
   echo "   $2: OK ($nn modules, same as the original)"
 }
 chmod 755 $FILES
-./php74 -v 2>/dev/null | head -1 | grep -q 'PHP 7.4.33' || die "php74 does not start"
-./php74-fpm -n -v | head -1 | grep -q 'PHP 7.4.33' || die "php74-fpm does not start"
+./php74 -v 2>/dev/null | head -1 | grep -q "PHP $NEW_PHP_VER" || die "php74 does not start"
+./php74-fpm -n -v | head -1 | grep -q "PHP $NEW_PHP_VER" || die "php74-fpm does not start"
 check_against_ref ./php74 "new php74 + current extensions" || die "the new binary loads extensions differently than the original"
 for m in $MODS; do
   r=$(./php74 -n -d extension="$HERE/modules/$m" -r 'echo "ok";' 2>&1)

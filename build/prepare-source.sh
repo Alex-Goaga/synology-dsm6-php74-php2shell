@@ -1,11 +1,13 @@
 #!/bin/bash
-# Step 2 – patched PHP 7.4.33 source tree in ~/synobuild/src/php-7.4.33:
+# Step 2 – patched PHP 7.4.33 source tree in $W/src/php-7.4.33 (see
+# build/lib/target.sh; this step itself is platform-independent, but $W
+# differs per target so each target gets its own source tree):
 #   php.net 7.4.33 + Ondřej Surý's php7.4 1:7.4.33-31 security backports
 #   (incl. PHP2Shell, patch 0164) + Synology compatibility patches.
 set -euo pipefail
 
 HERE=$(cd "$(dirname "$0")" && pwd)
-W=$HOME/synobuild
+. "$HERE/lib/target.sh"
 DEB=php7.4_7.4.33-31+ubuntu22.04.1+deb.sury.org+1.debian.tar.xz
 mkdir -p "$W/src" "$W/dl/ondrej-31"
 

@@ -9,5 +9,8 @@ SHA256SUMS text eol=lf
 deploy/php74     binary
 deploy/php74-cgi binary
 deploy/php74-fpm binary
+deploy-evansport-dsm71/php74     binary
+deploy-evansport-dsm71/php74-cgi binary
+deploy-evansport-dsm71/php74-fpm binary
 *.so     binary
 *.png    binary

@@ -1,9 +1,9 @@
-# Patched PHP 7.4 for Synology DSM 6.2 (PHP2Shell)
+# Patched PHP 7.4 for Synology DSM 6.2 / DSM 7.1 (PHP2Shell)
 
-Unofficial drop-in replacement for the Synology **PHP7.4 7.4.30-0009** package on
-**DSM 6.2 x86_64**. It fixes **PHP2Shell** (CVE-2026-109618 / CVE-2026-109619) and
-backports 90 other PHP security fixes, so older NAS units that cannot run DSM 7 can still
-run PHP 7.4 sites.
+Unofficial drop-in replacement for the Synology PHP7.4 package on **DSM 6.2 x86_64
+(avoton)** and **DSM 7.1 i686 (evansport)**. It fixes **PHP2Shell**
+(CVE-2026-109618 / CVE-2026-109619) and backports 90 other PHP security fixes, so
+older NAS units that cannot run a current PHP can still run PHP 7.4 sites.
 
 > Not affiliated with or endorsed by Synology. Use at your own risk, and keep the backup
 > that `install.sh` creates.
@@ -22,6 +22,7 @@ run PHP 7.4 sites.
 |---|---|---|---|---|
 | DS1815+ | Intel Atom C2538 | 6.2 | ✔ works (production: Web Station + PHP-FPM, MariaDB 5.5) | maintainer |
 | DS412+ | Intel Atom D2700 | 6.2.4-25556 Update 8 | ✔ works (test page all green, 58 extensions incl. openssl, soap, intl, gd; PHP 5.6 running alongside) | maintainer |
+| DS214play | Intel Atom CE5335 (evansport, i686) | 7.1 | *pending, see [deploy-evansport-dsm71](#install-evansportdsm-71)* | maintainer |
 
 **Tested it on another model? Please [report your result](#report-your-result)**, whether it
 worked or not; it helps others decide.
@@ -33,20 +34,25 @@ worked or not; it helps others decide.
 - The PHP project fixed it in 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12 (21 Oct 2026). For EOL 7.4
   there is only a "minimal mitigation" patch, shipped by Ondřej Surý in
   `php7.4 1:7.4.33-31`.
-- Synology does not ship patched PHP 7.x packages. On DSM 6 the latest PHP7.4 package is
-  7.4.30-0009 (2022).
+- Synology does not ship patched PHP 7.x packages. On DSM 6/avoton the latest PHP7.4
+  package is 7.4.30-0009 (2022). On evansport (32-bit i686, e.g. DS214play), Synology
+  stopped building PHP7.4 i686 packages after 7.4.30-0118 (Oct 2022) and never built
+  PHP 8.x for i686 at all — so 7.4.30-0118 is the newest PHP that platform can ever
+  officially run, making this backport the only way to fix PHP2Shell there.
 
 ## What is in this repository
 
 ```
-deploy/        ready-to-install files (the exact build running on the DS1815+)
+deploy/                 ready-to-install files for DSM 6.2 / avoton (x86_64)
+deploy-evansport-dsm71/ ready-to-install files for DSM 7.1 / evansport (i686)
   php74, php74-cgi, php74-fpm      PHP 7.4.33 + security backports
   modules/*.so (12)                rebuilt extensions that carry security fixes
   install.sh / uninstall.sh        install with backup, automatic rollback, FPM reload
   diag-fpm.sh                      compare original vs new with a site's exact ini files
-  SHA256SUMS
+  target.env / SHA256SUMS
 test-site/index.php  one-file test page (PHP, extensions, DNS, upload, MariaDB)
-build/         scripts to rebuild and verify everything from source
+build/         scripts to rebuild and verify everything from source (see build/lib/target.sh
+                for the avoton/DSM6.2 vs evansport/DSM7.1 target selection)
 ```
 
 ### The build
@@ -59,11 +65,12 @@ build/         scripts to rebuild and verify everything from source
   - Debian packaging patches (0001–0047), NEWS/README/credits/Windows-only patches;
   - **0128 "secure DNS telemetry"**: it sends version-check DNS queries to an external
     server, which is not a security fix.
-- **Toolchain:** Synology's own DSM 6.2 avoton toolkit (gcc 4.9.3, glibc 2.20). The build
-  links against the **same libraries** as the original: OpenSSL 1.0.2u, libxml2 2.9.4,
-  PCRE2 10.40 (JIT), oniguruma 6.9.5, ICU 56.1, libpq 9.3.25, SQLite 3.10.2, libpng 1.6.28,
-  FreeType 2.5.5, OpenLDAP 2.4.56, FreeTDS 1.1.20, libxslt 1.1.28. Max required symbol
-  version: `GLIBC_2.14`.
+- **Toolchain:** Synology's own toolkit for the selected target (gcc 4.9.3, glibc 2.20 on
+  avoton/DSM6.2). The build links against the **same libraries** as the original package;
+  on avoton/DSM6.2 that's OpenSSL 1.0.2u, libxml2 2.9.4, PCRE2 10.40 (JIT), oniguruma 6.9.5,
+  ICU 56.1, libpq 9.3.25, SQLite 3.10.2, libpng 1.6.28, FreeType 2.5.5, OpenLDAP 2.4.56,
+  FreeTDS 1.1.20, libxslt 1.1.28 (max required symbol version `GLIBC_2.14`). See
+  `build/targets/*.env` for the versions used by each target.
 - **Rebuilt extensions** (they contain fixes): openssl, soap, phar, gd, pgsql, pdo_pgsql,
   pdo_sqlite, pdo_dblib, ldap, intl, ftp, xsl. The other 31 Synology extensions (mysqli,
   pdo_mysql, curl, zip, opcache, …) have no fixes in the patch set and stay original;
@@ -80,7 +87,7 @@ build/         scripts to rebuild and verify everything from source
   (8502 functions, classes, methods, constants, ini settings, stream wrappers, hash
   algorithms, ciphers). The only addition is the security setting `max_multipart_body_parts`.
 
-## Install
+## Install (avoton/DSM 6.2)
 
 Requirements: DSM 6.2 x86_64, PHP7.4 package **7.4.30-0009** installed, SSH access.
 
@@ -97,14 +104,32 @@ Requirements: DSM 6.2 x86_64, PHP7.4 package **7.4.30-0009** installed, SSH acce
 
 4. Check your sites (or use the test page below), then disable SSH again.
 
+## Install (evansport/DSM 7.1)
+
+Requirements: DSM 7.1 i686 (e.g. DS214play), PHP7.4 package **7.4.30-0118** installed,
+SSH access. Same procedure, using `deploy-evansport-dsm71/` instead of `deploy/`:
+
+```bash
+sudo -i
+cd /volume1/homes/<user>/php74-fix-evansport
+sh install.sh
+```
+
+Before installing, confirm your installed package actually matches `target.env` in that
+folder: `cat /var/packages/PHP7.4/INFO | grep -E 'version|arch'` and `uname -m`. If your
+NAS has a different PHP7.4 version installed, edit `target.env` accordingly (and rebuild
+from source against the matching reference package, see "Building from source" below).
+
+## Install (common to both targets)
+
 `install.sh` stops **without changing anything** if any step fails. It:
 
-1. checks the architecture, the package version and `SHA256SUMS`;
+1. checks the architecture, the package version (from `target.env`) and `SHA256SUMS`;
 2. loads the new binaries with your real `php.ini` + `conf.d`, compares startup warnings and
    module count against the **original** binary (warnings caused by your own config are
    ignored), and loads every new extension;
-3. backs up the originals to `/var/packages/PHP7.4/target/.orig-7.4.30-0009`; the first
-   backup is never overwritten;
+3. backs up the originals to `/var/packages/PHP7.4/target/.orig-<package version>`; the
+   first backup is never overwritten;
 4. replaces files by copy + rename, so running workers keep the old inode and nothing mapped
    in memory is overwritten in place;
 5. re-checks and **rolls back automatically** if extensions no longer load;
@@ -201,7 +226,9 @@ Done in WSL with the DSM 6.2 sysroot libraries, plus on the DS1815+:
 
 ## Building from source
 
-On Linux or WSL (Ubuntu 22.04 tested), no root needed; everything goes to `~/synobuild`:
+On Linux or WSL (Ubuntu 22.04 tested), no root needed. The target (platform / DSM version /
+reference package) is selected by `build/lib/target.sh`, sourced by every `build/*.sh`
+script; default = avoton/DSM6.2 (`$HOME/synobuild`), unchanged from before targets existed.
 
 ```bash
 bash build/setup-env.sh          # Synology toolkit + sysroot, original package, re2c, PCRE2/onig sources
@@ -213,9 +240,23 @@ bash build/verify-all.sh         # parity, symbols, extension + core tests, FPM,
 bash build/test-site-check.sh    # serves test-site/ with the new build + MariaDB and checks it
 ```
 
+To build for evansport/DSM 7.1 (`$HOME/synobuild-evansport`) instead, prefix every command
+with `SYNO_TARGET=evansport-dsm71`, e.g. `SYNO_TARGET=evansport-dsm71 bash build/setup-env.sh`,
+and so on through the same sequence. See `build/targets/evansport-dsm71.env` for the
+package/toolkit versions used; re-verify the library versions it assumes (OpenSSL, ICU,
+libxml2, …) against the actually-downloaded evansport sysroot/package once
+`build/setup-env.sh` has run, and adjust that file if they differ.
+
+**32-bit host requirement for evansport:** `configure` is run natively (see below), so the
+build host must be able to execute i686 ELF binaries directly. On a plain Ubuntu 22.04 x86_64
+host this needs multiarch i386 support: `sudo dpkg --add-architecture i386 && sudo apt update
+&& sudo apt install -y libc6:i386 gcc-multilib`. Without it, override
+`BUILD=x86_64-pc-linux-gnu` before sourcing the target (cross-build), accepting the
+feature-loss risk described below — `build/parity.sh` will catch anything lost this way.
+
 Lessons learned while building:
 
-- Configure is run natively (target binaries run on the x86_64 host) so its run-tests
+- Configure is run natively (target binaries run on the build host) so its run-tests
   work. Those run-tests link DSM libraries (readline 6, OpenSSL 1.0, …), so
   `LD_LIBRARY_PATH` must point at the sysroot during configure. Without it, checks fail
   silently and features disappear. A first build lost `dns_get_record()`, `checkdnsrr()`,

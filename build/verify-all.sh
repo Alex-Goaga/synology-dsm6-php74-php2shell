@@ -1,7 +1,7 @@
 #!/bin/bash
 # Full verification of the final build (core + rebuilt extensions).
 B=$(cd "$(dirname "$0")" && pwd)
-W=$HOME/synobuild
+. "$B/lib/target.sh"
 echo "############ 1. API inventory (original vs new)"
 bash $B/parity.sh | tail -n +3
 echo "############ 2. symbols: new extensions + all originals with the new core"

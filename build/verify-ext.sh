@@ -2,8 +2,8 @@
 # Compare rebuilt extensions with Synology's originals (linkage, features, phpt tests).
 set -uo pipefail
 
-W=$HOME/synobuild
-SYSROOT=$W/root/usr/local/x86_64-pc-linux-gnu/x86_64-pc-linux-gnu/sys-root
+B=$(cd "$(dirname "$0")" && pwd)
+. "$B/lib/target.sh"
 ORIG=$W/syno/pkg/usr/local/lib/php74/modules
 NEW=$W/out/modules
 CORE=$W/out

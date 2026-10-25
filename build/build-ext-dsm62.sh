@@ -1,14 +1,14 @@
 #!/bin/bash
 # Rebuild the Synology PHP7.4 shared extensions that have security fixes in
-# the patch set, with the same features/libraries as Synology's 7.4.30-0009:
+# the patch set, with the same features/libraries as Synology's reference
+# package (see build/lib/target.sh for which version/arch):
 #   openssl soap phar ftp gd intl ldap pgsql pdo_pgsql pdo_sqlite pdo_dblib xsl
 # Uses a separate copy of the patched tree; core binaries come from
 # build-php74-dsm62.sh and are not replaced here.
 set -euo pipefail
 
-W=$HOME/synobuild
-TC=$W/root/usr/local/x86_64-pc-linux-gnu
-SYSROOT=$TC/x86_64-pc-linux-gnu/sys-root
+B=$(cd "$(dirname "$0")" && pwd)
+. "$B/lib/target.sh"
 INC=$SYSROOT/usr/include
 DEPS=$W/deps
 XD=$W/extdeps
@@ -18,7 +18,6 @@ PKG_LIBDIR=/var/packages/PHP7.4/target/usr/lib
 EXTS="openssl soap phar ftp gd intl ldap pgsql pdo_pgsql pdo_sqlite pdo_dblib xsl"
 
 export PATH=$TC/bin:$W/tools/bin:$PATH
-HOST=x86_64-pc-linux-gnu
 
 rm -rf "$W/src-ext" && mkdir -p "$W/src-ext"
 cp -a "$W/src/php-7.4.33" "$W/src-ext/"
@@ -51,7 +50,7 @@ export EXSLT_CFLAGS="-I$XD/xslt/include" EXSLT_LIBS="-lexslt -lxslt -lxml2"
 # run-tests need the DSM libs at runtime (see build-php74-dsm62.sh)
 export LD_LIBRARY_PATH="$DEPS/lib:$XD/xslt/lib:$XD/freetds/lib:$SYSROOT/usr/lib"
 ./configure \
-  --host=$HOST --build=$HOST --disable-rpath \
+  --host=$HOST --build=$BUILD --disable-rpath \
   --prefix=/usr --sysconfdir=/usr/local/etc/php74 \
   --with-config-file-path=/usr/local/etc/php74/cli \
   --localstatedir=/var --with-pear=/usr/share/pear --disable-all --disable-phpdbg --enable-cli --disable-cgi \

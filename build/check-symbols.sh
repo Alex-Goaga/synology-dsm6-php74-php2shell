@@ -1,8 +1,8 @@
 #!/bin/bash
 # Every undefined symbol of each module must be provided by php74-fpm or by a
 # library the module itself (transitively) depends on.
-W=$HOME/synobuild
-SYSROOT=$W/root/usr/local/x86_64-pc-linux-gnu/x86_64-pc-linux-gnu/sys-root
+B=$(cd "$(dirname "$0")" && pwd)
+. "$B/lib/target.sh"
 DIRS="$W/syno/pkg/usr/lib $SYSROOT/usr/lib $SYSROOT/lib $W/extdeps/xslt/lib"
 find_lib() { for d in $DIRS; do [ -e "$d/$1" ] && { echo "$d/$1"; return; }; done; }
 deps() { # transitive NEEDED closure

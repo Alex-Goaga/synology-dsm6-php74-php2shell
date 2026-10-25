@@ -1,11 +1,13 @@
 #!/bin/sh
-# Restore the original Synology PHP 7.4.30-0009 binaries and extensions saved by install.sh.
+# Restore the original Synology PHP7.4 binaries and extensions saved by install.sh.
 set -e
 
+HERE=$(cd "$(dirname "$0")" && pwd)
+. "$HERE/target.env"
 PKGDIR=/var/packages/PHP7.4
 BIN=$PKGDIR/target/usr/local/bin
 MODDIR=$PKGDIR/target/usr/local/lib/php74/modules
-BACKUP=$PKGDIR/target/.orig-7.4.30-0009
+BACKUP=$PKGDIR/target/.orig-$PKG_VER
 
 [ "$(id -u)" = 0 ] || { echo "run as root (sudo -i)"; exit 1; }
 [ -d "$BACKUP/bin" ] || { echo "no backup found in $BACKUP"; exit 1; }

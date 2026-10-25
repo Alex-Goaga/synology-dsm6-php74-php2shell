@@ -1,9 +1,9 @@
 #!/bin/bash
 # API inventory diff: original Synology php74 vs rebuilt php74, all extensions
 # loaded (rebuilt ones from out/modules, the rest from the package).
-W=$HOME/synobuild
+B=$(cd "$(dirname "$0")" && pwd)
+. "$B/lib/target.sh"
 export LC_ALL=C
-SYSROOT=$W/root/usr/local/x86_64-pc-linux-gnu/x86_64-pc-linux-gnu/sys-root
 ORIG_MOD=$W/syno/pkg/usr/local/lib/php74/modules
 NEW_MOD=$W/out/modules
 export LD_LIBRARY_PATH=$W/deps/lib:$W/extdeps/xslt/lib:$SYSROOT/usr/lib:$W/syno/pkg/usr/lib

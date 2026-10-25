@@ -1,7 +1,7 @@
 #!/bin/bash
 # Run upstream phpt tests for the new and the original binary (baseline).
-W=$HOME/synobuild
-SYSROOT=$W/root/usr/local/x86_64-pc-linux-gnu/x86_64-pc-linux-gnu/sys-root
+B=$(cd "$(dirname "$0")" && pwd)
+. "$B/lib/target.sh"
 export LD_LIBRARY_PATH=$W/deps/lib:$SYSROOT/usr/lib
 SRC=$W/src/php-7.4.33
 cd "$SRC"

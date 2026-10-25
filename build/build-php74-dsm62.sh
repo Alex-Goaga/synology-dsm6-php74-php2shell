@@ -1,40 +1,42 @@
 #!/bin/bash
-# Build PHP 7.4.33 (+ Debian/Ondrej security backports incl. PHP2Shell) fo
-# Synology DSM 6.2 x86_64 (avoton toolchain, gcc 4.9.3 / glibc 2.20).
+# Build PHP 7.4.33 (+ Debian/Ondrej security backports incl. PHP2Shell) for
+# the selected Synology target (see build/lib/target.sh; default =
+# DSM 6.2 x86_64, avoton toolchain, gcc 4.9.3 / glibc 2.20).
 #
 # Produces drop-in replacements for php74, php74-cgi and php74-fpm of the
-# Synology PHP7.4 7.4.30-0009 package. Shared extensions are NOT rebuilt.
+# Synology PHP7.4 reference package. Shared extensions are NOT rebuilt.
 #
-# Expects (see README.md):
-#   ~/synobuild/root      Synology ds.avoton-6.2 env+dev (toolchain + sysroot)
-#   ~/synobuild/syno/pkg  extracted package.tgz of PHP7.4-x86_64-7.4.30-0009
-#   ~/synobuild/src/php-7.4.33  patched source tree
-#   ~/synobuild/tools     re2c 1.3, pcre2-10.40 / onig-6.9.5 tarballs
+# Expects (see README.md), under $W (see build/lib/target.sh):
+#   $W/root      Synology ds.$PLATFORM-$DSM_VER env+dev (toolchain + sysroot)
+#   $W/syno/pkg  extracted package.tgz of the reference PHP7.4 package
+#   $W/src/php-7.4.33  patched source tree
+#   $W/tools     re2c 1.3, pcre2 / onig tarballs
 set -euo pipefail
 
-W=$HOME/synobuild
-TC=$W/root/usr/local/x86_64-pc-linux-gnu
-SYSROOT=$TC/x86_64-pc-linux-gnu/sys-root
-PKG=$W/syno/pkg
+B=$(cd "$(dirname "$0")" && pwd)
+. "$B/lib/target.sh"
 SRC=$W/src/php-7.4.33
 DEPS=$W/deps
 OUT=$W/out
 PKG_LIBDIR=/var/packages/PHP7.4/target/usr/lib
 
 export PATH=$TC/bin:$W/tools/bin:$PATH
-HOST=x86_64-pc-linux-gnu
 
 # --- headers + link stubs for the libs that ship inside the Synology package
 rm -rf "$DEPS" && mkdir -p "$DEPS/include" "$DEPS/lib"
-tar -xjf $W/tools/src/pcre2-10.40.tar.bz2 -C "$DEPS"
-cp "$DEPS/pcre2-10.40/src/pcre2.h.generic" "$DEPS/include/pcre2.h"
-tar -xzf $W/tools/src/onig-6.9.5.tar.gz -C "$DEPS"
-cp "$DEPS/onig-6.9.5/src/oniguruma.h" "$DEPS/include/"
-# link directly against Synology's own builds (same SONAMEs at runtime)
-cp -a "$PKG/usr/lib/libpcre2-8.so.0.11.0" "$PKG/usr/lib/libonig.so.5.0.0" "$DEPS/lib/"
-ln -sf libpcre2-8.so.0.11.0 "$DEPS/lib/libpcre2-8.so.0"
+tar -xjf $W/tools/src/pcre2-$PCRE2_VER.tar.bz2 -C "$DEPS"
+cp "$DEPS/pcre2-$PCRE2_VER/src/pcre2.h.generic" "$DEPS/include/pcre2.h"
+tar -xzf $W/tools/src/onig-$ONIG_VER.tar.gz -C "$DEPS"
+cp "$DEPS/onig-$ONIG_VER/src/oniguruma.h" "$DEPS/include/"
+# link directly against Synology's own builds (same SONAMEs at runtime);
+# glob instead of an exact filename since the shipped micro-version can
+# differ per target
+PCRE2_SO=$(basename "$(ls "$PKG"/usr/lib/libpcre2-8.so.*.*.* 2>/dev/null | head -1)")
+ONIG_SO=$(basename "$(ls "$PKG"/usr/lib/libonig.so.*.*.* 2>/dev/null | head -1)")
+cp -a "$PKG/usr/lib/$PCRE2_SO" "$PKG/usr/lib/$ONIG_SO" "$DEPS/lib/"
+ln -sf "$PCRE2_SO" "$DEPS/lib/libpcre2-8.so.0"
 ln -sf libpcre2-8.so.0 "$DEPS/lib/libpcre2-8.so"
-ln -sf libonig.so.5.0.0 "$DEPS/lib/libonig.so.5"
+ln -sf "$ONIG_SO" "$DEPS/lib/libonig.so.5"
 ln -sf libonig.so.5 "$DEPS/lib/libonig.so"
 
 export CC=$HOST-gcc CXX=$HOST-g++ AR=$HOST-ar RANLIB=$HOST-ranlib STRIP=$HOST-strip
@@ -57,14 +59,16 @@ cd "$SRC"
 for re in ext/pdo/pdo_sql_parser.re ext/standard/url_scanner_ex.re; do touch "$re"; done
 
 make distclean >/dev/null 2>&1 || true
-# host == build on purpose: the target binaries run on the WSL host, so
-# configure's run-tests execute instead of falling back to cross defaults.
-# Those run-tests link DSM libs (readline 6, OpenSSL 1.0, ...) that the WSL
-# host doesn't have; without them checks fail and features get dropped
-# (e.g. res_nsearch -> no dns_get_record/checkdnsrr/getmxrr)
+# BUILD == HOST by default (see build/lib/target.sh): the target binaries run
+# natively on the build host, so configure's run-tests execute instead of
+# falling back to cross defaults. Those run-tests link DSM libs (readline 6,
+# OpenSSL 1.0, ...) that the host doesn't have; without them checks fail and
+# features get dropped (e.g. res_nsearch -> no dns_get_record/checkdnsrr/getmxrr).
+# If the host cannot execute $HOST binaries natively (e.g. no i386 multiarch
+# for the evansport/i686 target), override BUILD before sourcing target.sh.
 export LD_LIBRARY_PATH="$DEPS/lib:$SYSROOT/usr/lib"
 ./configure \
-  --host=$HOST --build=$HOST \
+  --host=$HOST --build=$BUILD \
   --disable-rpath \
   --prefix=/usr \
   --bindir=/usr/local/bin --mandir=/usr/share/man \
